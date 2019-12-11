@@ -13,7 +13,7 @@
 #define ALL_SERVOS          0XFE
 
 int ID = 2;
-int pgain = 10;
+int pgain = 5;
 long actTime = 0; 
 long hlpTime = 0;
 int Direction_Pin = 2;                          
@@ -24,7 +24,6 @@ class DynamixelSerial{
   bool type;
   void setTorquePacket(unsigned char ID, bool torque_status);
   void SetPGain(unsigned char ID, int Pgain);
-  void setGoalVelocityPacket(int velocity, unsigned char ID);
   void rebootDynamixelPacket(unsigned char  ID);
   void ReadTemp(unsigned char ID);
   void transmitInstructionPacket(unsigned char* var1, int var2);
@@ -72,28 +71,6 @@ void DynamixelSerial::SetPGain(unsigned char ID, int Pgain) {
   transmitInstructionPacket(PGain, 12);
 }
 
-void DynamixelSerial::setGoalVelocityPacket(int velocity, unsigned char ID) {
-
-  unsigned char Velocity[] = {
-    HEADER,
-    HEADER,
-    HEADER_3,
-    RESERVED,
-    ID,
-    0x09,
-    PACKET_LENGTH_H,
-    WRITE_INSTRUCTION,
-    0x68,                     //Low-order byte from the starting address
-    0x00,                     //High-order byte from the starting address
-    (velocity & 0xFF),        //byte 1 of Data
-    (velocity & 0xFF00) >> 8,   //byte 2 of Data
-    (velocity & 0xFF0000) >> 16,  //byte 3 of Data
-    (velocity & 0xFF000000) >> 24,  //byte 4 of Data
-  };
-  type = false;
-  transmitInstructionPacket(Velocity, 14);
-}
-
 void DynamixelSerial::rebootDynamixelPacket(unsigned char  ID) {
   unsigned char rebootInstructionPacket[] {
     HEADER,
@@ -128,10 +105,9 @@ void DynamixelSerial::ReadTemp(unsigned char ID) {
   transmitInstructionPacket(Temperature, 12);
 }
 
-void DynamixelSerial::transmitInstructionPacket(unsigned char* var1, int var2) {     //Every packet will be send to this function with two parameters being the instruction packet and the lenght of the packet
-  digitalWrite(Direction_Pin, HIGH); // Set TX Buffer pin to HIGH to be able to transmit
-  unsigned short crc = update_crc(0, var1, var2);             // crc = update.crc and feeds it the three variables it need 0, intruction and lenght of packet
-  // Serial.print("Transmitting   ");
+void DynamixelSerial::transmitInstructionPacket(unsigned char* var1, int var2) {     
+  digitalWrite(Direction_Pin, HIGH);                                                
+  unsigned short crc = update_crc(0, var1, var2);            
   for (int i = 0; i < var2; i++)
   {
     Serial1.write(*var1);
@@ -149,8 +125,6 @@ void DynamixelSerial::transmitInstructionPacket(unsigned char* var1, int var2) {
 
   digitalWrite(Direction_Pin, LOW); //Set TX Buffer pin to LOW after data has been sent
   interrupts();
-  //Serial.println(".....done Transmitting");
-
   delay(50);
 
   if (type == false){
@@ -173,20 +147,22 @@ void DynamixelSerial::readStatusPacketTemp() {
   int i = 0;
   while (Serial1.available() > 0) {
     Status_Packet_Array[i] = Serial1.read();
-    Serial.print(Status_Packet_Array[i]);
     i++;
     }
     int temp = Status_Packet_Array[9];
-    Serial.println("");
+    int h1 = Status_Packet_Array[0];
+    int h2 = Status_Packet_Array[1];  
+    int h3 = Status_Packet_Array[2];
+    if ((h1 == 255) && (h2 == 255) && (h3 == 253)){
     Serial.print("The current temperature is: ");
     Serial.print(temp);
-    Serial.print(" °C");
-    Serial.println("");
-    if (temp > 80 && temp < 100){    
+    Serial.print(" °C \n");
+    if (temp > 80){    
     rebootDynamixelPacket(ID);
     Serial.println("HOT HOT HOT");
     Serial.flush();  
     }
+   }
   }
 
 unsigned short DynamixelSerial::update_crc(unsigned short crc_accum, unsigned char* data_blk_ptr, unsigned short data_blk_size){
@@ -237,7 +213,6 @@ unsigned short DynamixelSerial::update_crc(unsigned short crc_accum, unsigned ch
 DynamixelSerial dynamixel;
 
 void setup() {
-  actTime = millis();
   Serial.flush();                                       // Clear the serial buffer of garbage data before running the code.
   Serial1.begin(SERVO_SET_Baudrate);                   // We now need to set Arduino to the new Baudrate speed 57600
   Serial.begin(SERVO_SET_Baudrate);                                  // Start serial communication on baudrate 57600
@@ -253,9 +228,9 @@ void setup() {
 }
 
 void loop() {
-  
+
+  actTime = millis();
   actTime = actTime + 100;
-  delay ( random(10, 70) ); 
   hlpTime = millis();
   String instruction; 
   
@@ -283,8 +258,9 @@ void loop() {
   if (instruction.equals("5")) { 
     while (1){
     dynamixel.ReadTemp(ID);   
-    };   
+    Serial.println(actTime-hlpTime);
     delay((actTime - hlpTime));
+   };     
   }
 }
 
