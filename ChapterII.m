@@ -11,15 +11,14 @@ syms n                                               %
      
 %% Time Variables %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 T = 2*pi; % second                                   %
-N = 620; % resolution                                %
+N = 150; % resolution                                %
 i = 0;                                               %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% For Loop for the simulation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                                                                                       %
-for t = linspace(-2*pi, T, N)                                                         %
+for t = linspace(-T, T, N)                                                            %
      i = i + 1; time(i) = t;                                                          %
-     time1 = [-2*pi:0.008:2*pi];                                                      %
      y(i) = -2*t^2;                                                                   %
                                                                                       %
      a0 = 1/(2*pi) * q_a0;                                                            %
@@ -47,4 +46,6 @@ title('Fourier Series')                                %
 legend('Original Function', 'N=1', 'N=10')             %                                                                    
 grid on;                                               %                  
 xlabel('Time [s]');                                    %
+xlim([-6.4 6.4]);                                      %
+ylim([-25 5]);                                         %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
